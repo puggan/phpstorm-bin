@@ -1,0 +1,118 @@
+#!/usr/local/bin/php7
+<?php
+
+	$dir = getcwd();
+	if(substr($dir, -1) != '/')
+	{
+		$dir .= '/';
+	}
+
+	$phpstorm_app_path = '/Applications/PhpStorm.app/Contents/MacOS/phpstorm';
+	$project_path = '/Users/puggan/PhpstormProjects/';
+
+	$projects = [
+		'bb' => $project_path . 'Bokborsen/',
+		'bbadmin' => $project_path . 'admin.bokborsen/',
+		'bbexport' => $project_path . 'Bok Export/',
+		'ts' => $project_path . 'testseek/',
+	];
+	$project_alias = [
+			'/Users/puggan/htdocs/bokborsen/' => 'bb',
+			'/Users/puggan/htdocs/bokborsen_admin/' => 'bbadmin',
+			'/Users/puggan/htdocs/bokborsen_export/' => 'bbexport',
+			'/home/vagrant/bokborsen/' => 'bb',
+		] + array_flip($projects);
+
+	uksort(
+		$project_alias,
+		function ($a, $b)
+		{
+			$ld = strlen($b) - strlen($a);
+			if($ld)
+			{
+				return $ld;
+			}
+			return strcmp($a, $b);
+		}
+	);
+
+	function dir_match($dir, $list)
+	{
+		if(substr($dir, -1) != '/')
+		{
+			$dir .= '/';
+		}
+		foreach($list as $compare_dir)
+		{
+			if(substr($dir, 0, strlen($compare_dir)) == $compare_dir)
+			{
+				return $compare_dir;
+			}
+		}
+		return FALSE;
+	}
+
+	$project_dir = dir_match($dir, array_keys($project_alias));
+
+	foreach(array_slice($argv, 1) as $argument)
+	{
+		if(preg_match('#:([0-9]+):?$#', $argument, $match))
+		{
+			$line_number = $match[1];
+			$file_name = substr($argument, 0, -strlen($match[0]));
+		}
+		else
+		{
+			$line_number = NULL;
+			$file_name = $argument;
+		}
+
+		if(substr($file_name, 0, 1) != '/')
+		{
+			if(file_exists("{$dir}{$file_name}"))
+			{
+				$file_name = "{$dir}{$file_name}";
+			}
+			else if($project_dir AND file_exists("{$project_dir}{$file_name}"))
+			{
+				$file_name = "{$project_dir}{$file_name}";
+			}
+			else
+			{
+				$file_name = "{$dir}{$file_name}";
+			}
+		}
+
+		$real_project_dir = is_dir($file_name) ? $file_name : dirname($file_name);
+		$file_project_dir = dir_match($real_project_dir, array_keys($project_alias));
+		if($file_project_dir)
+		{
+			$real_project_dir = $projects[$project_alias[$file_project_dir]];
+			if($real_project_dir != $file_project_dir)
+			{
+				$file_name = $real_project_dir . substr($file_name, strlen($file_project_dir));
+			}
+		}
+
+		if(!file_exists($file_name))
+		{
+			fprintf(STDERR, "File missing %s\n", $file_name);
+			continue;
+		}
+
+		$command = [
+			escapeshellcmd($phpstorm_app_path),
+			escapeshellarg($real_project_dir)
+		];
+		if(!is_dir($file_name))
+		{
+			if($line_number)
+			{
+				$command[] = escapeshellarg('--line');
+				$command[] = escapeshellarg($line_number);
+			}
+			$command[] = escapeshellarg($file_name);
+		}
+		echo implode(' ',$command) . PHP_EOL;
+		passthru(implode(' ',$command));
+	}
