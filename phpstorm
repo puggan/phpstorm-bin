@@ -2,26 +2,39 @@
 <?php
 
 	$dir = getcwd();
-	if(substr($dir, -1) != '/')
+	if(substr($dir, -1) !== '/')
 	{
 		$dir .= '/';
 	}
 
-	$phpstorm_app_path = '/Applications/PhpStorm.app/Contents/MacOS/phpstorm';
-	$project_path = '/Users/puggan/PhpstormProjects/';
+	$phpstorm_app_path = '/usr/local/bin/phpstorm.eap';
+	$project_path = '/Users/puggan/src/';
 
-	$projects = [
-		'bb' => $project_path . 'Bokborsen/',
-		'bbadmin' => $project_path . 'admin.bokborsen/',
-		'bbexport' => $project_path . 'Bok Export/',
-		'ts' => $project_path . 'testseek/',
-	];
-	$project_alias = [
-			'/Users/puggan/htdocs/bokborsen/' => 'bb',
-			'/Users/puggan/htdocs/bokborsen_admin/' => 'bbadmin',
-			'/Users/puggan/htdocs/bokborsen_export/' => 'bbexport',
-			'/home/vagrant/bokborsen/' => 'bb',
-		] + array_flip($projects);
+	$projects = [];
+
+	foreach(scandir($project_path, SCANDIR_SORT_NONE) as $project_name)
+	{
+		$idea_path = $project_path . $project_name . '/.idea';
+		if(is_dir($idea_path)) {
+			$projects[$project_name] = $project_path . $project_name . '/';
+			continue;
+		}
+
+		if(is_file($idea_path)) {
+			foreach(file($idea_path) as $row)
+			{
+				$parts = explode('=', $row, 2);
+				if(empty($parts[1])) continue;
+				$sub_project_name = trim($parts[0]);
+				$sub_project_path = trim($parts[1]);
+
+				$projects[$project_name . '/' . $sub_project_name] = $project_path . $project_name . '/'. $sub_project_path . '/';
+
+			}
+		}
+	}
+
+	$project_alias = [] + array_flip($projects);
 
 	uksort(
 		$project_alias,
