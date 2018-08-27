@@ -1,4 +1,4 @@
-#!/usr/local/bin/php7
+#!/usr/bin/php
 <?php
 
 	$dir = getcwd();
@@ -7,8 +7,8 @@
 		$dir .= '/';
 	}
 
-	$phpstorm_app_path = '/usr/local/bin/phpstorm.eap';
-	$project_path = '/Users/puggan/src/';
+	$phpstorm_app_path = '/usr/local/bin/pstorm';
+	$project_path = '/home/puggan/src/';
 
 	$projects = [];
 
